@@ -20,13 +20,13 @@ class Motif:
         return self.regex
 
 class Gene:
-    def __init__(self, name:str, seq:str, motifHits:list):
+    def __init__(self, name:str, seq:str):
         '''Represents one fasta record'''
         ## Data ##
         self.name = name # should be extracted from record header  
         self.seq = seq
         self.exonStart, self.exonEnd = self._extract_exon_pos() 
-        self.motifHits = [] # list of MotifInstances
+        self.motifHits:list = [] # list of MotifInstances, instantiated to an empty list since no hits have been found when object is created
 
     ## Methods ##
     def _extract_exon_pos(self):
@@ -78,17 +78,97 @@ def get_args():
     return parser.parse_args()
 
 def parse_fasta(fasta:str):
-    # To-Do: Add functionality here
-    return
+    """
+    Parses a fasta to extract each record as a Gene object, containing name (header line) and sequence. 
+    Lowercase bases are considered introns and uppercase bases are considered exons.
+
+    :param fasta: explicit path to fasta file (each record should be an intron-exon-intron region)
+    :type fasta: str
+    """
+    genes:set = set() # set of genes found in fasta
+    name:str = ""
+    seq:str = ""
+    with open(fasta, "r") as file:
+        for line in file:
+            line = line.strip()
+            if line.startswith(">"):
+                if name != "":
+                    gene = Gene(name, seq)
+                    genes.add(gene)
+                name = line[1:-1] # extract header line as name 
+            else:
+                seq += line
+    return genes
+
 
 def parse_motifs(motifs:str):
-    # To-Do: Add functionality here
-    return
+    """
+    Parses a text file containing motif sequences to extract each motif as a Gene object, containing motif sequence and regex for this motif.
+
+    :param motifs: explicit path to motifs text file (one motif per line)
+    :type motifs: str
+    """
+    motif_set:set = set()
+    seen_seqs:list = []
+    with open(motifs, "r") as file:
+        for line in file:
+            line = line.strip()
+            seq = line.lower() # extract motif sequence, make all bases lowercase for consistency
+            if seq in seen_seqs:
+                continue # skip any duplicate motifs observed
+            seen_seqs.append(seq)
+            regex = motif_seq_to_regex(seq) # get regex for motif sequence
+            motif_set.add(Motif(seq, regex))
+    return motif_set
+
+def motif_seq_to_regex(motif:str):
+    """
+    Takes a motif sequence and returns a regex string representing that motif. Capitalization of sequence is ignored.
+    
+    :param motif: motif sequence (may contain ambiguous bases)
+    :type motif: str
+    """
+    regex:str = ""
+    nucleotides:dict = {
+        "a":"a",
+        "t":"t",
+        "c":"c",
+        "g":"g",
+        "u":"u",
+        "w":{"a","t","u"},
+        "s":{"c", "g"},
+        "m":{"a", "c"},
+        "k":{"g", "t", "u"},
+        "r":{"a", "g"},
+        "y":{"c", "t", "u"},
+        "b":{"c", "g", "t", "u"},
+        "d":{"a", "g", "t", "u"},
+        "h":{"a", "c", "t", "u"},
+        "v":{"a", "c", "g"},
+        "n":{"a","g","c", "t", "u"},
+    }
+
+    for char in motif:
+        if char == "-":
+            print(f"At least one gap ('-') found in the motif '{motif}'. Motifs must not contain any gaps.")
+            sys.exit(1)
+        if char not in nucleotides:
+            print(f"Invalid character '{char}' encountered in the motif '{motif}'. Only nucleotides (a,t,c,g,u) or amibiguous base symbols are accepted.")
+            sys.exit(1)
+        valid_nts = nucleotides[char] # get valid nucleotides for this base
+        if len(valid_nts) == 1: # if nt is an unamiguous base 
+            regex += char
+        else: # if nt is an ambiguous base 
+            regex += "[" + "".join(valid_nts) + "]"
+
+    return regex
 
 def Main():
    args = get_args()
    fasta = args.fasta
    motifs = args.motifs
+   genes = parse_fasta(fasta) # set of Gene objects extracted from fasta
+   motif_set = parse_motifs(motifs) # set of Motif objects extracted from motifs file
 
 
 
