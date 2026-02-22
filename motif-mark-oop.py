@@ -13,11 +13,8 @@ class Motif:
         ## Data ##
         self.seq = seq 
         self.regex = regex
+        self.len = len(seq)
 
-
-    ## Methods ##
-    def get_regex(self):
-        return self.regex
 
 class Gene:
     def __init__(self, name:str, seq:str):
@@ -25,8 +22,9 @@ class Gene:
         ## Data ##
         self.name = name # should be extracted from record header  
         self.seq = seq
-        self.exonStart, self.exonEnd = self._extract_exon_pos() 
-        self.motifHits:list = [] # list of MotifInstances, instantiated to an empty list since no hits have been found when object is created
+        self.exon_start, self.exon_end = self._extract_exon_pos() 
+        self.seq = self.seq.lower() # once we have exon position, set the whole sequence to lower case
+        self.motif_hits:list = [] # list of MotifInstances, instantiated to an empty list since no hits have been found when object is created
 
     ## Methods ##
     def _extract_exon_pos(self):
@@ -36,7 +34,7 @@ class Gene:
             if (char.isupper()):
                 start = i
                 break
-        if (start==-1):
+        if (start == -1):
             print("Error: Failed to find the start of the exon. Make sure each record in your fasta includes an intron-exon-intron sequence, introns are denoted with lowercase characters, and exons are uppercase.")
             sys.exit(1)
         # 0-based, exclusive
@@ -49,20 +47,18 @@ class Gene:
             sys.exit(1)
         return start, end
     
-    def add_motif_hit(self, hit:Motif):
-        self.motifHits.append(hit)
-
-
+    def add_motif_hit(self, hit:"MotifInstance"):
+        self.motif_hits.append(hit)
 
 
 class MotifInstance:
-    def __init__(self, motifType:Motif, gene:Gene, start_pos:int, end_pos:int):
+    def __init__(self, motifType:Motif, gene:Gene, pos:int):
         '''A motif instance/hit detected in a sequence from the fasta file'''
         ## Data ##
-        self.motifTyepe = motifType
+        self.motifType = motifType
         self.gene = gene
-        self.start_pos = start_pos # 0-based, inclusive 
-        self.end_pos = end_pos # 0-based, exclusive
+        self.pos = pos # 0-based, inclusive 
+
 
     
         
@@ -163,12 +159,43 @@ def motif_seq_to_regex(motif:str):
 
     return regex
 
+def find_motif_hits(gene:Gene, motif_set:set[Motif]):
+    """
+    Finds all motif instances in a gene and adds them to the gene object's motif_hits list.
+    
+    :param gene: Gene (aka record) to find motif hits in 
+    :type gene: Gene
+    :param motif_set: Motifs of interest
+    :type motif_set: set of Motifs
+    """
+    
+    for motif in motif_set:
+        regex:str = motif.regex
+        seq:str = motif.seq
+        for match in re.finditer(f"(?=({regex}))", seq): # use lookahead to make sure we find overlapping motifs 
+            hit:MotifInstance = MotifInstance(motif, gene, match.start())
+            gene.add_motif_hit(hit)
+
+def make_plot(genes:list[Gene]):
+    """
+    Create one plot for all records in the fasta using pycairo.
+    
+    :param genes: Genes (records) in the fasta, each with a populated motif_hits list 
+    :type genes: list[Gene]
+    """
+
+    for gene in genes:
+        
+
 def Main():
    args = get_args()
    fasta = args.fasta
    motifs = args.motifs
    genes = parse_fasta(fasta) # set of Gene objects extracted from fasta
    motif_set = parse_motifs(motifs) # set of Motif objects extracted from motifs file
+   for gene in genes: # populate each gene's motif_hits list with identified motifs 
+       find_motif_hits(gene, motif_set)
+
 
 
 
