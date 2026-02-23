@@ -1,0 +1,25 @@
+Motif Statistics Summary for /Users/annikalaberge-shusterman/Desktop/bioinfo/Bi625/OOP_Motif_Mark/Figure_1.fa:
+
+INSR chr19:7150261-7150808 (reverse complement)
+	Motif CATAG found 1 times.
+	Motif YYYYYYYYYY found 8 times.
+	Motif YGCY found 12 times.
+	Motif GCAUG found 0 times.
+
+MBNL chr3:152446461-152447003
+	Motif CATAG found 1 times.
+	Motif YYYYYYYYYY found 3 times.
+	Motif YGCY found 12 times.
+	Motif GCAUG found 0 times.
+
+ATP2A1 chr16:28903467-28904044
+	Motif CATAG found 1 times.
+	Motif YYYYYYYYYY found 6 times.
+	Motif YGCY found 28 times.
+	Motif GCAUG found 0 times.
+
+CLASP1 chr2:121444593-121445363 (reverse complement)
+	Motif CATAG found 0 times.
+	Motif YYYYYYYYYY found 25 times.
+	Motif YGCY found 18 times.
+	Motif GCAUG found 0 times.
