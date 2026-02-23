@@ -1,4 +1,4 @@
-Motif Statistics Summary for /Users/annikalaberge-shusterman/Desktop/bioinfo/Bi625/OOP_Motif_Mark/Figure_1.fa:
+Motif Statistics Summary for example.fa:
 
 INSR chr19:7150261-7150808 (reverse complement)
 	Motif CATAG found 1 times.
