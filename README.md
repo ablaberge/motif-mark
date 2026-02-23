@@ -1,6 +1,6 @@
 # motif-mark
 
-A tool for identifying and visualizing motifs in DNA sequences. One output PNG is created, which includes one visualization per record in the FASTA. This PNG is named using the basename of the FASTA (e.g., fasta1.fa -> fasta1.png), and it will be created in the directory where this script is called. 
+A tool for identifying and visualizing motifs in DNA sequences. One output PNG is created, which includes one visualization per record in the FASTA. This PNG is named using the basename of the FASTA (e.g., fasta1.fa -> fasta1.png), and it will be created in the directory where the FASTA is located. 
 
 ## Usage:
 
@@ -14,4 +14,7 @@ A tool for identifying and visualizing motifs in DNA sequences. One output PNG i
 [Pycairo v.1.29.0](https://github.com/pygobject/pycairo)
 
 ## Example Output
-Coming soon!
+
+Example motif visualization:
+![Example motif visualization](example.png)
+[Example stats file](example_MotifStats.txt)
