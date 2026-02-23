@@ -5,15 +5,6 @@ import re
 import sys
 import os
 
-##--------------------------Global Variables--------------------------##
-
-COLORS:list = [
-    (1.0, 0.0, 0.0, 0.5), # red
-    (0.0, 0.5, 1.0, 0.5), # blue
-    (0.0, 0.8, 0.0, 0.5), # green
-    (0.6, 0.0, 0.8, 0.5), # purple
-    (1.0, 0.6, 0.0, 0.5)  # orange
-]
 
 ##--------------------------Classes--------------------------##
 
@@ -36,6 +27,7 @@ class Gene:
         self.exon_start, self.exon_end = self._extract_exon_pos() 
         self.seq = self.seq.lower() # once we have exon position, set the whole sequence to lower case
         self.motif_hits:list = [] # list of MotifInstances, instantiated to an empty list since no hits have been found when object is created
+        self.motif_counts:dict = dict() # holds counts of each MotifInstance.motifType seen in motif_hits for stats file
 
     ## Methods ##
     def _extract_exon_pos(self):
@@ -57,14 +49,17 @@ class Gene:
         if (end==-1):
             print("Error: Failed to find the end of the exon. Make sure each record in your fasta includes an intron-exon-intron sequence, introns are denoted with lowercase characters, and exons are uppercase.")
             sys.exit(1)
-        #-----------DEBUGGING - delete  before submission------------
-        print(f"Gene: {self.name}, Seq len: {len(self.seq)}, Exon: {start}-{end}")
-        print(f"First 50 chars: '{self.seq[:50]}'")
-        print(f"Chars 240-250: '{self.seq[240:250]}'")
+
         return start, end
     
     def add_motif_hit(self, hit:"MotifInstance"):
         self.motif_hits.append(hit)
+    
+    def populate_motif_counts(self, motifs: set[Motif]):
+        for motif in motifs:
+            self.motif_counts[motif.seq] =  0
+        for motif_hit in self.motif_hits:
+            self.motif_counts[motif_hit.motifType.seq] += 1
 
 
 class MotifInstance:
@@ -125,6 +120,14 @@ def parse_motifs(motifs:str):
     :param motifs: explicit path to motifs text file (one motif per line)
     :type motifs: str
     """
+    COLORS:list = [
+    (1.0, 0.0, 0.0, 0.5), # red
+    (0.0, 0.5, 1.0, 0.5), # blue
+    (0.0, 0.8, 0.0, 0.5), # green
+    (0.6, 0.0, 0.8, 0.5), # purple
+    (1.0, 0.6, 0.0, 0.5)  # orange
+    ]
+
     motif_set:set = set()
     seen_seqs:list = []
     with open(motifs, "r") as file:
@@ -215,21 +218,22 @@ def make_plot(genes:list[Gene], basename:str, max_seq_len:int, motifs:set[Motif]
     num_genes:int = len(genes)
     HEIGHT_MAIRGIN = 60
     LEFT_MARGIN = 100
-    HEIGHT_PER_RECORD = 120
-    SPACE_BW_RECORDS = 20
+    HEIGHT_PER_RECORD = 60
+    SPACE_BW_RECORDS = 30
     WIDTH:int = 1400
-    HEIGHT:int = 2*HEIGHT_MAIRGIN + (num_genes * HEIGHT_PER_RECORD) + ((num_genes - 1) * SPACE_BW_RECORDS)
-    LEGEND_HEIGHT = 30 + len(motifs) * 25
+    HEIGHT:int = 2 * HEIGHT_MAIRGIN + (num_genes * HEIGHT_PER_RECORD) + ((num_genes - 1) * SPACE_BW_RECORDS)
+    LEGEND_PADDING = 15 
     LEGEND_WIDTH = 180
     LEGEND_X = WIDTH - LEGEND_WIDTH - 20 
-    LEGEND_Y = 80
-    LEGEND_PADDING = 15 
-    ENTRY_HEIGHT = 15 
+    LEGEND_Y = 20
     COLOR_BOX_SIZE = 18 
     BOX_TEXT_GAP = 10
     INTRON_THICKNESS = 2
     EXON_HEIGHT = 20
     MOTIF_HEIGHT = 15 
+    ENTRY_SPACING = 10
+    ENTRY_HEIGHT = ENTRY_SPACING + COLOR_BOX_SIZE
+    LEGEND_HEIGHT = (2 * LEGEND_PADDING) + (len(motifs) * COLOR_BOX_SIZE) + ((len(motifs) - 1) * ENTRY_SPACING)
 
     
 
@@ -237,7 +241,6 @@ def make_plot(genes:list[Gene], basename:str, max_seq_len:int, motifs:set[Motif]
     # Start building graph
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, WIDTH, HEIGHT)
     ctx = cairo.Context(surface)
-    #ctx.scale(WIDTH, HEIGHT)  # Normalizing the canvas
 
     # Set background to white 
     ctx.set_source_rgb(1,1,1)
@@ -258,9 +261,9 @@ def make_plot(genes:list[Gene], basename:str, max_seq_len:int, motifs:set[Motif]
         ctx.fill()
         # Write motif 
         ctx.set_source_rgb(0,0,0) # black text
-        ctx.set_font_size(12)
+        ctx.set_font_size(14)
         ctx.select_font_face("Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-        ctx.move_to(LEGEND_X + LEGEND_PADDING + COLOR_BOX_SIZE + BOX_TEXT_GAP, curr_y + (COLOR_BOX_SIZE/2) + 4)
+        ctx.move_to(LEGEND_X + LEGEND_PADDING + COLOR_BOX_SIZE + BOX_TEXT_GAP, curr_y + (COLOR_BOX_SIZE/2) + 5)
         ctx.show_text(motif.seq.upper())
         # Adjust height for next entry 
         curr_y += ENTRY_HEIGHT
@@ -286,7 +289,7 @@ def make_plot(genes:list[Gene], basename:str, max_seq_len:int, motifs:set[Motif]
         # Make box to denote exon
         ctx.set_source_rgb(0,0,0)
         exon_top = gene_line_y - (EXON_HEIGHT/2) # Center exon on line 
-        ctx.rectangle(gene.exon_start + LEFT_MARGIN + 1, exon_top, gene.exon_end - gene.exon_start, EXON_HEIGHT)
+        ctx.rectangle(gene.exon_start + LEFT_MARGIN, exon_top, gene.exon_end - gene.exon_start, EXON_HEIGHT)
         ctx.fill()
         # Draw motifs
         for motif_hit in gene.motif_hits:
@@ -318,6 +321,24 @@ def get_longest_seq(genes:list[Gene]):
         if len(gene.seq) > max_seq_len:
             max_seq_len = len(gene.seq)
     return max_seq_len
+
+def make_stats_file(genes:list[Gene], basename:str):
+    """
+    Creates a text file with stats about the motifs found in each record.
+
+    :param genes: Genes (records) in the fasta, each with a populated motif_hits list 
+    :type genes: list[Gene]
+    :param basename: Basename of fasta for naming stats file
+    :type basename: String
+    """
+    # TO DO
+    with open(f"{basename}_MotifStats.txt", "w") as file:
+        file.write(f"Motif Statistics Summary for {basename}.fa:\n")
+        for gene in genes:
+            file.write(f"\n{gene.name}\n")
+            for motif_seq,count in gene.motif_counts.items():
+                file.write(f"\tMotif {motif_seq.upper()} found {count} times.\n")
+ 
         
 
 def Main():
@@ -326,9 +347,13 @@ def Main():
    motifs = args.motifs
    genes:list[Gene] = parse_fasta(fasta) # set of Gene objects extracted from fasta
    motif_set:set[Motif] = parse_motifs(motifs) # set of Motif objects extracted from motifs file
-   for gene in genes: # populate each gene's motif_hits list with identified motifs 
-       find_motif_hits(gene, motif_set)
-   make_plot(genes, os.path.splitext(fasta)[0], get_longest_seq(genes), motif_set)
+   for gene in genes: 
+       find_motif_hits(gene, motif_set) # populate each gene's motif_hits list with identified motifs 
+       gene.populate_motif_counts(motif_set) # populate each gene's motif_counts with counts of identified motifs
+   basename = os.path.splitext(fasta)[0]
+   make_plot(genes, basename, get_longest_seq(genes), motif_set)
+   make_stats_file(genes, basename)
+   print(f"\nMotif visualization {basename}.png and motif stats file {basename}.MotifStats.txt created successfully!")
 
 
 
