@@ -22,7 +22,7 @@ class Gene:
     def __init__(self, name:str, seq:str):
         '''Represents one fasta record'''
         ## Data ##
-        self.name = name # should be extracted from record header  
+        self.name = name.split(" ") # should be extracted from record header  
         self.seq = seq
         self.exon_start, self.exon_end = self._extract_exon_pos() 
         self.seq = self.seq.lower() # once we have exon position, set the whole sequence to lower case
@@ -151,10 +151,10 @@ def motif_seq_to_regex(motif:str):
     regex:str = ""
     nucleotides:dict = {
         "a":"a",
-        "t":"t",
+        "t":{"t", "u"},
         "c":"c",
         "g":"g",
-        "u":"u",
+        "u":{"u", "t"},
         "w":{"a","t","u"},
         "s":{"c", "g"},
         "m":{"a", "c"},
@@ -234,6 +234,7 @@ def make_plot(genes:list[Gene], basename:str, max_seq_len:int, motifs:set[Motif]
     ENTRY_SPACING = 10
     ENTRY_HEIGHT = ENTRY_SPACING + COLOR_BOX_SIZE
     LEGEND_HEIGHT = (2 * LEGEND_PADDING) + (len(motifs) * COLOR_BOX_SIZE) + ((len(motifs) - 1) * ENTRY_SPACING)
+    EXON_THICKNESS = 4
 
     
 
@@ -275,10 +276,14 @@ def make_plot(genes:list[Gene], basename:str, max_seq_len:int, motifs:set[Motif]
         # Write title of gene
         gene_y = HEIGHT_MAIRGIN + gene_index * (HEIGHT_PER_RECORD + SPACE_BW_RECORDS)
         ctx.set_source_rgb(0,0,0) # Black text
-        ctx.set_font_size(14)
+        ctx.set_font_size(16)
         ctx.select_font_face("Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
-        ctx.move_to(LEFT_MARGIN, gene_y - 10) # Write title 10 px above gene
-        ctx.show_text(gene.name)
+        ctx.move_to(LEFT_MARGIN, gene_y - 20) # Write gene name 20 px above gene
+        ctx.show_text(gene.name[0])
+        ctx.set_font_size(14)
+        ctx.select_font_face("Arial", cairo.FONT_SLANT_ITALIC, cairo.FONT_WEIGHT_NORMAL)
+        ctx.move_to(LEFT_MARGIN, gene_y - 7) # Write gene pos 10 px above gene
+        ctx.show_text(gene.name[1])
         # Make line to denote intron
         gene_line_y = gene_y + 20 # Place gene graph below gene title
         ctx.set_source_rgb(0,0,0)
@@ -289,7 +294,11 @@ def make_plot(genes:list[Gene], basename:str, max_seq_len:int, motifs:set[Motif]
         # Make box to denote exon
         ctx.set_source_rgb(0,0,0)
         exon_top = gene_line_y - (EXON_HEIGHT/2) # Center exon on line 
+        ctx.set_line_width(EXON_THICKNESS)
         ctx.rectangle(gene.exon_start + LEFT_MARGIN, exon_top, gene.exon_end - gene.exon_start, EXON_HEIGHT)
+        ctx.stroke()
+        ctx.rectangle(gene.exon_start + LEFT_MARGIN, exon_top, gene.exon_end - gene.exon_start, EXON_HEIGHT)
+        ctx.set_source_rgb(1,1,1)
         ctx.fill()
         # Draw motifs
         for motif_hit in gene.motif_hits:
@@ -331,16 +340,13 @@ def make_stats_file(genes:list[Gene], basename:str):
     :param basename: Basename of fasta for naming stats file
     :type basename: String
     """
-    # TO DO
     with open(f"{basename}_MotifStats.txt", "w") as file:
         file.write(f"Motif Statistics Summary for {basename}.fa:\n")
         for gene in genes:
-            file.write(f"\n{gene.name}\n")
+            file.write(f"\n{gene.name[0]} - {gene.name[1]}\n")
             for motif_seq,count in gene.motif_counts.items():
                 file.write(f"\tMotif {motif_seq.upper()} found {count} times.\n")
  
-        
-
 def Main():
    args = get_args()
    fasta = args.fasta
@@ -355,9 +361,5 @@ def Main():
    make_stats_file(genes, basename)
    print(f"\nMotif visualization {basename}.png and motif stats file {basename}.MotifStats.txt created successfully!")
 
-
-
-
 if __name__ == "__main__":
    Main()
-    
