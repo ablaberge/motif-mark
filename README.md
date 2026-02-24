@@ -1,5 +1,7 @@
 # motif-mark
 
+## Description:
+
 A tool for identifying and visualizing motifs in DNA or pre-mRNA sequences. One output PNG is created, which includes one visualization per record in the FASTA. This PNG is named using the basename of the FASTA (e.g., fasta1.fa -> fasta1.png), and it will be created in the directory where the FASTA is located. 
 
 ## Usage:
